@@ -1,4 +1,4 @@
-# Agent-Ready Design System — Execution Plan v4
+# Agent-Ready Design System — Execution Plan v4.1
 
 > Status: **proposed, awaiting owner review.** Nothing below is built yet.
 > Every version number was checked against the npm registry or the source repository on 2026-10-08.
@@ -11,6 +11,11 @@
 clickable prototype built **only** from this design system's tokens, components, patterns and
 flows — the way Lovable or v0 produce a prototype, except the output is governed by *our* system
 instead of a generic one.
+
+**The prototype is the handoff.** No Figma file is handed to developers. The prototype is real,
+readable React source that imports our design-system packages, passes typecheck, lint and tests,
+and can be dropped into a product codebase. A prototype that only runs inside a viewer is not
+developer-ready and does not count.
 
 Everything else in this plan exists to make that output correct:
 
@@ -53,7 +58,7 @@ Every phase below ends with **something the owner can open and look at**.
 | Visual review | Storybook | 10.6.1 | MIT |
 | Tests | Vitest + Playwright | vitest 5.0.3 · @playwright/test 1.64.0 | MIT / Apache-2.0 |
 | Flows | XState (machines stored as JSON) + graph tools | xstate 5.33.2 · @xstate/graph 3.0.4 | MIT |
-| Requirement → prototype | json-render (catalog generated from our contracts) | @json-render/core 0.21.0 | Apache-2.0 |
+| Requirement → prototype | **Prototype spec** (our JSON, validated against a Zod catalog generated from contracts) → **our deterministic code emitter** → runnable React app (Vite) | zod 4 · vite | MIT |
 | Agents (local) | Claude Agent SDK | @anthropic-ai/claude-agent-sdk 0.3.x | Anthropic Commercial Terms |
 | Agents (autonomous, scheduled) | Claude Managed Agents (beta) | API beta `managed-agents-2026-04-01` | Anthropic Commercial Terms |
 | Figma (later, optional) | **ds-contracts** via the switch in §6 | @ds-contracts/schema 16.0.0 · @ds-contracts/cli 0.4.0 | MIT |
@@ -64,7 +69,11 @@ Every phase below ends with **something the owner can open and look at**.
 Radix (slowing), Mantine (fights our tokens), MCP Apps / A2UI (bypass the design system),
 XState v6 (alpha), Style Dictionary (no `$extends` or resolvers).
 
-**Pre-1.0 dependencies** (json-render 0.21, ds-contracts 0.4 / schema 16): pinned to exact versions
+**json-render dropped.** It renders a JSON spec at runtime, which is not code a developer can
+take. Its two useful ideas — a catalog that constrains the AI, and a prompt generated from that
+catalog — we implement directly from our contracts.
+
+**Pre-1.0 dependencies** (ds-contracts 0.4 / schema 16): pinned to exact versions
 and each kept behind **one adapter file**, so a breaking upgrade touches one file.
 
 ---
@@ -158,7 +167,8 @@ A trimmed Button example lives in `contracts/components/Button/` once Phase 3 ru
 
 ## 6. The ds-contracts switch — exact specification
 
-**Purpose.** ds-contracts is optional and off by default. But everything we build is
+**Purpose.** ds-contracts is optional and off by default. Developers receive the prototype, not a
+Figma file, so this switch serves designers only (keeping a Figma library in step with code). But everything we build is
 ds-contracts-compatible **from day one**, so turning it on later is one setting — not a rewrite.
 
 ### 6.1 The switch
@@ -280,7 +290,8 @@ If the owner's tokens are in the older hex-string dialect, Phase 1 converts them
 │   ├── ui/                           # React components (shadcn Base UI edition, owned code)
 │   │   └── src/components/<Name>/    # <Name>.tsx · <Name>.stories.tsx · <Name>.test.tsx
 │   ├── blocks/                       # Pattern Blocks (React)
-│   └── prototype/                    # requirement → prototype renderer (json-render)
+│   └── prototyper/                   # prototype spec schema · catalog · code emitter
+├── prototypes/<name>/                # GENERATED handoff apps (one runnable React app each)
 ├── contracts/
 │   ├── schema/                       # component · block · pattern · flow · journey schemas
 │   ├── prop-canon.json               # hand-kept axes + value glossary
@@ -361,25 +372,38 @@ Legend: ✅ done · ☐ to do · **👁 what the owner reviews**
 
 ### Part D — Requirement → prototype
 
-**Phase 11 · Catalog** — json-render catalog generated from contracts (one adapter file); the catalog's prompt becomes the agent's instructions
-**Phase 12 · The prototyping loop**
-- ☐ Owner types a requirement → agent picks patterns and flows → outputs UI spec + flow machine
-- ☐ Catalog validation → structural loop → experience loop → rendered preview
-- ☐ Rejected outputs come back with the reason in plain language
-- 👁 **The product:** a prototype page generated from a typed requirement
+**Phase 11 · Catalog and prototype spec**
+- ☐ Zod catalog generated from contracts: every component, block and pattern, with allowed props and slots
+- ☐ The catalog's generated prompt becomes the prototyper agent's instructions
+- ☐ **Prototype spec** (JSON): screens, routes, the components/blocks/patterns on each, the XState flow machine, and the data each screen needs
+- ☐ Spec validation: catalog check → structural loop → experience loop. Nothing is emitted from an invalid spec
+
+**Phase 12 · Code emitter** (deterministic: the same spec always produces the same code)
+- ☐ Spec → a Vite + React app in `prototypes/<name>/`:
+  - pages that import only `@ds/ui`, `@ds/blocks` and our patterns; no raw HTML styling, no arbitrary Tailwind values
+  - flows as XState machines in their own files, wired to the screens
+  - data through a typed **mock adapter** per screen, clearly marked, so developers swap in the real API in one place
+  - a test per flow path (generated from `@xstate/graph`) and a smoke test per screen
+- ☐ Agents may refine the emitted code; every refinement re-runs the same checks
+
+**Phase 13 · Developer handoff package**
+- ☐ Each prototype must pass: typecheck · lint · tests · token auditor · "imports only from the design system" check
+- ☐ `HANDOFF.md` generated per prototype: screens, flows and their states, business rules used, components used (linked to their contracts), mock adapters to replace, known limits
+- ☐ Export as a zip or a branch/PR the developers can take
+- 👁 **The product:** type a requirement → click through the prototype → hand the same code to developers
 
 ### Part E — Agents
 
-**Phase 13 · Rules, skills, CLAUDE.md** — path-scoped rules per layer; skills: scaffold-component, add-from-shadcn, add-from-base-ui, scaffold-block, author-pattern, author-flow, prototype, audit, review-pr
-**Phase 14 · Local orchestration (Agent SDK)** — coordinator + subagents; a hook before every edit blocks writes to generated files; a hook after every edit runs the matching validator; CI is the hard gate
-**Phase 15 · Autonomous agents (Managed Agents)** — nightly audit, PR review, fix proposals
+**Phase 14 · Rules, skills, CLAUDE.md** — path-scoped rules per layer; skills: scaffold-component, add-from-shadcn, add-from-base-ui, scaffold-block, author-pattern, author-flow, prototype, audit, review-pr
+**Phase 15 · Local orchestration (Agent SDK)** — coordinator + subagents; a hook before every edit blocks writes to generated files; a hook after every edit runs the matching validator; CI is the hard gate
+**Phase 16 · Autonomous agents (Managed Agents)** — nightly audit, PR review, fix proposals
 
 | Agent | Model | Job |
 |---|---|---|
 | Coordinator | Opus | Plans, delegates, combines |
 | Structural auditor | Haiku | Token, prop, contract and export checks |
 | Experience validator | Sonnet | Flow and journey checks, simulation |
-| Prototyper | Opus | Requirement → prototype |
+| Prototyper | Opus | Requirement → prototype spec → handoff code |
 | Healer | Sonnet | Proposes fixes, never applies them |
 
 Notes: Managed Agents is beta and not eligible for zero-data-retention or HIPAA coverage; repo
@@ -387,15 +411,16 @@ skills load without review, so `.claude/` is protected by CODEOWNERS; every sess
 
 ### Part F — Figma (optional)
 
-**Phase 16 · Flip the switch** — `dsContracts.enabled: true`; bundle → Figma plugin → anchors written
+**Phase 17 · Flip the switch** — `dsContracts.enabled: true`; bundle → Figma plugin → anchors written
 back → `ds-contracts diff` in CI. Needs a Figma account and `FIGMA_TOKEN`.
 - 👁 The component library appearing in Figma, generated from the same contracts
 
-### Phase 17 · Proof — the thesis as tests
+### Phase 18 · Proof — the thesis as tests
 - ☐ A payment flow using only approved components but with no failure path → **structural passes, experience fails**
 - ☐ A journey handoff missing a field → fails
 - ☐ A high-consequence action without confirmation → fails
 - ☐ A prototype request needing an unapproved component → rejected with the reason
+- ☐ A generated prototype passes typecheck, lint, tests and the design-system-only import check, and runs in a clean install
 - ☐ Every contract exports to ds-contracts and validates (switch readiness)
 - ☐ A nightly autonomous run on a planted problem → report + proposed fix awaiting approval
 
@@ -416,8 +441,8 @@ back → `ds-contracts diff` in CI. Needs a Figma account and `FIGMA_TOKEN`.
 
 - [ ] `pnpm verify` and `ds doctor` are green in CI
 - [ ] Every contract validates against its schema **and** exports cleanly to ds-contracts
-- [ ] A typed requirement produces a prototype built only from our system, and an invalid one is rejected with a reason
-- [ ] All Phase 17 proof tests behave as described
+- [ ] A typed requirement produces a developer-ready prototype (real React source, passing all checks, with `HANDOFF.md`) built only from our system, and an invalid one is rejected with a reason
+- [ ] All Phase 18 proof tests behave as described
 - [ ] Turning `dsContracts.enabled` on produces a Figma bundle with no contract changes
 
 ---
@@ -429,7 +454,7 @@ back → `ds-contracts diff` in CI. Needs a Figma account and `FIGMA_TOKEN`.
 | Token files into `packages/tokens/tokens/` | Owner | Phase 1 waits |
 | ds-contracts CLI version with `figma bundle` | Agent, Phase 2 | Pin 0.5.0-rc if 0.4.0 lacks it |
 | Business rules for the Payment flow | Owner, Phase 7 | Agent drafts, owner edits |
-| Figma account and token | Owner, Phase 16 only | Phase 16 deferred |
+| Figma account and token | Owner, Phase 17 only | Phase 17 deferred |
 
 ---
 
