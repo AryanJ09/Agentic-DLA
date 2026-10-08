@@ -39,9 +39,9 @@ loop inside Claude Code, where you can approve prompts.
 
 ```
 status: RUNNING        # RUNNING · GATE · BLOCKED · DONE — the loop only continues on RUNNING
-current: T0.1          # the task the next iteration should pick up
+current: T0.2          # the task the next iteration should pick up
 gate: none             # the open gate, if status is GATE
-last_completed: none
+last_completed: T0.1
 updated: 2026-10-08
 ```
 
@@ -131,7 +131,7 @@ Log:
 
 ### T0.1 · Scaffold the workspace
 
-Status: todo Attempts: 0
+Status: done Attempts: 1
 Depends: — Builder: Sonnet Critic: Haiku
 Steps: pnpm workspace (`packages/*`, `apps/*`, `prototypes/*`); root `package.json` with scripts
 `format`, `format:check`, `lint`, `typecheck`, `test`, `verify`; TypeScript strict base config;
@@ -140,6 +140,11 @@ Prettier; ESLint (flat config); Vitest; Playwright config (no tests yet); `.nvmr
 Acceptance: `pnpm install --frozen-lockfile` · `pnpm format:check` · `pnpm lint` · `pnpm typecheck` · `pnpm test`
 Owner sees: nothing visual yet.
 Log:
+
+- Attempt 1 (Sonnet builder; this session was switched to Sonnet, so Opus did not coordinate). All 5 acceptance commands exit 0.
+- TypeScript pinned to 6.0.3, not 7.0.2: typescript-eslint 8.71.1 supports TypeScript below 6.1 only. Revisit when it adds 7.
+- Haiku critic, review 1: three valid defects (`@types/node` 24 vs Node 22; `--passWithNoTests` could hide a broken test glob; `typecheck` would skip future packages). All fixed. Its fourth point, "nothing committed", is by design.
+- Haiku critic, review 2: APPROVE. Note: `eslint.config.js` is linted but not type-checked (plain JS).
 
 ### T0.2 · System identity and the ds-contracts switch
 
