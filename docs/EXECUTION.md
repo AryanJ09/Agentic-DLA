@@ -85,7 +85,9 @@ Do these steps in order. **One task per iteration.**
    critic cannot approve a failing check.
 8. **Settle.**
    - Checks pass and critic approves → set `Status: done`, update the State block
-     (`last_completed`, `current` = next task), commit `"[<task-id>] <title>"`, push.
+     (`last_completed`, `current` = next task). **If the task changed what exists** (a file, a command,
+     a component), update `README.md` in the same commit: its status rows, the commands list, "What's
+     where" and the Roadmap. Nothing is described as working until its task is done. Then commit `"[<task-id>] <title>"`, push.
    - Otherwise → record the problems in `Log:`, commit the attempt, push. If `Attempts:` has reached
      the limit, set the task `Status: blocked`, set `status: BLOCKED`, write the reason under
      **Blockers**, commit, push, stop.
@@ -148,13 +150,18 @@ Log:
 
 ### T0.2 · System identity and the ds-contracts switch
 
-Status: todo Attempts: 0
+Status: in-progress Attempts: 1
 Depends: T0.1 Builder: Sonnet Critic: Haiku
 Steps: `ds.config.json` exactly as PLAN.md §6.1 (`enabled: false`). `scripts/lib/config.ts` loads and
 validates it with Zod; a test proves a bad config is refused with a clear message.
 Acceptance: `pnpm typecheck` · `pnpm test`
 Owner sees: `ds.config.json`.
 Log:
+
+- Attempt 1. Opus coordinator: brief in `.ai/briefs/T0.2.md`. Sonnet builder: `ds.config.json`, `scripts/lib/config.ts`, 11 tests, `zod` pinned to 4.6.5, README status rows updated. `pnpm verify` exit 0 (re-run by the coordinator).
+- Coordinator protocol edits in the same iteration: step 8 now requires README updates when a task changes what exists; the T0.5 hook exempts `.ai/briefs/**`.
+- Haiku critic, review 1: REJECT. (1) The EXECUTION.md edits are the coordinator's, not the builder's, so they are out of the builder's scope. (2) Valid bug: `outDir` accepted `.ai/`, `.ai/ ` and similar. Fixed: `outDir` must be lowercase kebab-case folders under `.ai/` and must not be `.ai/briefs` or inside it. 10 more cases tested; 25 tests pass.
+- Awaiting critic review 2.
 
 ### T0.3 · `ds doctor`
 
@@ -186,7 +193,8 @@ Steps: `CLAUDE.md` — "ground yourself first" (ds-base-ui idea: run `pnpm -s do
 the task's area only), load context on demand, the honesty rules from PLAN.md §10, pointers to
 PLAN.md and this file. `.claude/agents/builder.md` (model: sonnet), `auditor.md` (model: haiku),
 `critic.md` (model: opus) with their roles from PLAN.md Part E. `.claude/settings.json`: SessionStart
-hook runs `pnpm -s doctor --summary`; a PreToolUse hook refuses edits to `.ai/**` and `**/build/**`.
+hook runs `pnpm -s doctor --summary`; a PreToolUse hook refuses edits to `.ai/**` (except `.ai/briefs/**`, where the loop writes briefs) and
+`**/build/**`.
 `.github/CODEOWNERS` covering `.claude/`, `contracts/schema/`, `ds.config.json`.
 Also in `.claude/settings.json`: a permission allow-list for `pnpm *`, `npx shadcn@4.21.4 *`,
 `git add`, `git commit`, `git push` and file edits, so the headless loop never waits on a prompt.

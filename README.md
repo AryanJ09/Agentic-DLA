@@ -156,7 +156,7 @@ _Planned (Phases 11–13)._
 Everything built is **ds-contracts-compatible from the start**, so turning it on later is one setting, not a rewrite:
 
 ```jsonc
-// ds.config.json  (planned, task T0.2)
+// ds.config.json  (built, task T0.2; excerpt)
 { "dsContracts": { "enabled": false, "schema": "16.0.0", "cli": "0.4.0" } }
 ```
 
@@ -203,7 +203,7 @@ docs/
 package.json          scripts and exact-pinned dev dependencies              (built)
 pnpm-workspace.yaml   packages/*  apps/*  prototypes/*                       (built)
 scripts/              checks and tooling, TypeScript only                    (workspace test only)
-ds.config.json        system identity and the ds-contracts switch            (planned, T0.2)
+ds.config.json        system identity and the ds-contracts switch            (built, T0.2)
 CLAUDE.md             the rules every agent reads first                      (planned, T0.5)
 .claude/              subagents (builder, auditor, critic), hooks            (planned, T0.5)
 packages/tokens/      token JSON -> Style Dictionary -> CSS + Tailwind theme (planned, Phase 1)
