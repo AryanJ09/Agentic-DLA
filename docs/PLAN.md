@@ -1,6 +1,7 @@
-# Agent-Ready Design System — Execution Plan v4.1
+# Agent-Ready Design System — Execution Plan v4.2
 
-> Status: **proposed, awaiting owner review.** Nothing below is built yet.
+> Status: **approved direction; Phase 0 not started.**
+> This file is the **context** (what and why). [`docs/EXECUTION.md`](./EXECUTION.md) is the **seed** (exact steps, run in a loop).
 > Every version number was checked against the npm registry or the source repository on 2026-10-08.
 
 ---
@@ -53,7 +54,7 @@ Every phase below ends with **something the owner can open and look at**.
 | Behaviour layer under the components | **Base UI** (keyboard, focus, screen-reader behaviour) | @base-ui/react 1.8.0 | MIT |
 | Gap rule | A component shadcn lacks is built from **Base UI**, wrapped in shadcn's style | — | — |
 | Styling | Tailwind CSS, themed **only** from our tokens | tailwindcss 4.3.3 | MIT |
-| Token compiler | Terrazzo (full support for the DTCG 2025.10 format) | @terrazzo/cli 2.7.1 | MIT |
+| Token compiler | **Style Dictionary** — reads both the older DTCG spelling (hex strings) and 2025.10 colour/dimension objects; the token tool AI knows best; proven by ds-base-ui | style-dictionary 5.6.0 | Apache-2.0 |
 | Tables | TanStack Table (what shadcn's data table already uses) | @tanstack/react-table 9.2.6 | MIT |
 | Visual review | Storybook | 10.6.1 | MIT |
 | Tests | Vitest + Playwright | vitest 5.0.3 · @playwright/test 1.64.0 | MIT / Apache-2.0 |
@@ -67,7 +68,7 @@ Every phase below ends with **something the owner can open and look at**.
 
 **Rejected:** Astryx (StyleX styling and beta), Ark UI (paid examples, swappability not needed),
 Radix (slowing), Mantine (fights our tokens), MCP Apps / A2UI (bypass the design system),
-XState v6 (alpha), Style Dictionary (no `$extends` or resolvers).
+XState v6 (alpha), Terrazzo (reads only 2025.10 object values; its extra power — `$extends`, resolver-based theming — is not needed while themes are light/dark files; revisit only for a brand × mode matrix).
 
 **json-render dropped.** It renders a JSON spec at runtime, which is not code a developer can
 take. Its two useful ideas — a catalog that constrains the AI, and a prompt generated from that
@@ -110,7 +111,7 @@ EXPERIENCE LAYERS (each uses the one below AND adds its own meaning)
   Pattern        a recurring task, solved        pattern.contract.json
   Pattern Block  a composition with one job      block.contract.json + React
   Component      an interaction primitive        component.contract.json + React (shadcn/Base UI)
-  Tokens         visual decisions                DTCG 2025.10 JSON
+  Tokens         visual decisions                DTCG JSON (+ generated Tailwind v4 theme)
   ─────────────────────────────────────────────────────────────────────────────
   CONTRACTS      one per item, every layer — intent, constraints, states, relationships
   ─────────────────────────────────────────────────────────────────────────────
@@ -244,12 +245,12 @@ cannot hold them. Those stay in our contracts, which remain the source of truth.
 
 | | Our source | ds-contracts dialect |
 |---|---|---|
-| Format | DTCG **2025.10** (colour objects, `{value, unit}` dimensions) — required by Terrazzo | Legacy DTCG: hex strings (`"#2563EB"`), unit strings (`"16px"`) |
+| Format | DTCG — whichever spelling the owner's files use (Style Dictionary reads both) | Legacy DTCG: hex strings (`"#2563EB"`), unit strings (`"16px"`) |
 | Files | Tiered: primitives → semantic, with modes | `primitives.tokens.json`, `semantic.tokens.json`, `modes/semantic.light.tokens.json`, `modes/semantic.dark.tokens.json` |
 | Rule | Components bind to semantic tokens only | Same rule |
 
-`contracts:export` down-converts tokens mechanically (object colour → hex, `{value, unit}` → string)
-and splits modes into the four files above. Its own integrity rules are checked too: every alias
+`contracts:export` down-converts tokens mechanically **only if** the source uses 2025.10 objects
+(object colour → hex, `{value, unit}` → string); a hex-string source passes through. It splits modes into the four files above. Its own integrity rules are checked too: every alias
 resolves, and light and dark define identical token sets.
 
 ### 6.6 Version pinning and upgrades
@@ -268,15 +269,18 @@ resolves, and light and dark define identical token sets.
 
 | Step | What happens |
 |---|---|
-| Source | `packages/tokens/tokens/` — the owner's existing tokens, DTCG 2025.10, two tiers (definitions → usage, from ds-base-ui), light/dark modes |
+| Source | `packages/tokens/tokens/` — the owner's existing DTCG tokens, two tiers (definitions → usage, from ds-base-ui), light/dark modes. **The DTCG JSON is the single source of truth** |
+| Owner's Tailwind v4 file | Kept read-only in `packages/tokens/reference/` and **compared** with the generated theme in Phase 1; every difference is reported for the owner to decide. After that the Tailwind theme is only ever generated |
 | Check | Every file parses; every reference resolves; light and dark define the same set; no component-level token points at a primitive |
-| Build (Terrazzo) | `tokens.css` — CSS variables `--ds-<path>` (prefix from `ds.config.json`), references kept as `var()` |
+| Build (Style Dictionary) | `tokens.css` — CSS variables `--ds-<path>` (prefix from `ds.config.json`), references kept as `var()` |
 | Tailwind theme | Generated `@theme` block so Tailwind classes resolve to our variables, and shadcn's theme variables (`--primary`, `--background`, …) generated as **aliases** of our semantic tokens. No hand-written theme file |
 | Auditor | Flags arbitrary Tailwind values (`bg-[#389fba]`, `p-[13px]`), raw colours anywhere, and primitives used directly in components — with the token that should replace each |
 | Switch | Legacy-dialect export for ds-contracts (§6.5) |
 
-If the owner's tokens are in the older hex-string dialect, Phase 1 converts them once to 2025.10
-(mechanical) and reports every change.
+**Learnings kept from ds-base-ui:** two tiers (definitions → usage); components use usage tokens
+only; references stay `var()` aliases in the CSS, so the output reads like the token architecture;
+light/dark as separate mode files; composite text-style tokens; a CI validator that fails on any raw
+colour or primitive inside a component. Its MIT build script is a reference for ours, with attribution.
 
 ---
 
@@ -286,7 +290,7 @@ If the owner's tokens are in the older hex-string dialect, Phase 1 converts them
 .
 ├── ds.config.json                    # identity + the ds-contracts switch
 ├── packages/
-│   ├── tokens/                       # DTCG source → Terrazzo → CSS + Tailwind theme
+│   ├── tokens/                       # DTCG source → Style Dictionary → CSS + Tailwind theme
 │   ├── ui/                           # React components (shadcn Base UI edition, owned code)
 │   │   └── src/components/<Name>/    # <Name>.tsx · <Name>.stories.tsx · <Name>.test.tsx
 │   ├── blocks/                       # Pattern Blocks (React)
@@ -326,8 +330,9 @@ Legend: ✅ done · ☐ to do · **👁 what the owner reviews**
 
 **Phase 1 · Tokens**
 - ✅ Tokens exist (owner's)
-- ☐ Import into `packages/tokens/tokens/`; check and, if needed, convert to 2025.10
-- ☐ Terrazzo build → CSS variables + Tailwind theme + shadcn aliases
+- ☐ Import into `packages/tokens/tokens/` (JSON) and `packages/tokens/reference/` (owner's Tailwind v4 file); check
+- ☐ Style Dictionary build → CSS variables + Tailwind theme + shadcn aliases
+- ☐ Compare the generated Tailwind theme with the owner's file; report every difference
 - ☐ Token auditor
 - 👁 Storybook "Tokens" page: every colour, space, radius, type style, light and dark
 
@@ -341,7 +346,8 @@ Legend: ✅ done · ☐ to do · **👁 what the owner reviews**
 ### Part B — Components
 
 **Phase 3 · Seed components** (shadcn Base UI edition)
-- ☐ Button, Input, Field, Select, Checkbox, Dialog, Card, Badge, Table (TanStack), Tabs
+- ☐ **Batch 1 — five components, then STOP for owner validation.** Default: Button, Input, Checkbox, Dialog, Card (one each of: action, text entry, state, overlay with focus trap, composition). The owner can replace the list in `docs/EXECUTION.md`
+- ☐ Batch 2+ only after the owner approves Batch 1 and shares the building strategy
 - ☐ For each: owned code restyled to our tokens · contract · conformance tests · Storybook story
 - ☐ Gap demo: one component shadcn lacks (Number field or Autocomplete) built from Base UI in shadcn style
 - ☐ Each passes the structural loop **and** the ds-contracts export check
