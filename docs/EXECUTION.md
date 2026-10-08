@@ -39,9 +39,9 @@ loop inside Claude Code, where you can approve prompts.
 
 ```
 status: RUNNING        # RUNNING · GATE · BLOCKED · DONE — the loop only continues on RUNNING
-current: T0.2          # the task the next iteration should pick up
+current: T0.3          # the task the next iteration should pick up
 gate: none             # the open gate, if status is GATE
-last_completed: T0.1
+last_completed: T0.2
 updated: 2026-10-08
 ```
 
@@ -150,7 +150,7 @@ Log:
 
 ### T0.2 · System identity and the ds-contracts switch
 
-Status: in-progress Attempts: 1
+Status: done Attempts: 1
 Depends: T0.1 Builder: Sonnet Critic: Haiku
 Steps: `ds.config.json` exactly as PLAN.md §6.1 (`enabled: false`). `scripts/lib/config.ts` loads and
 validates it with Zod; a test proves a bad config is refused with a clear message.
@@ -161,7 +161,7 @@ Log:
 - Attempt 1. Opus coordinator: brief in `.ai/briefs/T0.2.md`. Sonnet builder: `ds.config.json`, `scripts/lib/config.ts`, 11 tests, `zod` pinned to 4.6.5, README status rows updated. `pnpm verify` exit 0 (re-run by the coordinator).
 - Coordinator protocol edits in the same iteration: step 8 now requires README updates when a task changes what exists; the T0.5 hook exempts `.ai/briefs/**`.
 - Haiku critic, review 1: REJECT. (1) The EXECUTION.md edits are the coordinator's, not the builder's, so they are out of the builder's scope. (2) Valid bug: `outDir` accepted `.ai/`, `.ai/ ` and similar. Fixed: `outDir` must be lowercase kebab-case folders under `.ai/` and must not be `.ai/briefs` or inside it. 10 more cases tested; 25 tests pass.
-- Awaiting critic review 2.
+- Haiku critic, review 2: APPROVE. It probed 12 more `outDir` values; all were refused or accepted correctly.
 
 ### T0.3 · `ds doctor`
 
