@@ -398,13 +398,33 @@ Legend: ✅ done · ☐ to do · **👁 what the owner reviews**
 **Phase 15 · Local orchestration (Agent SDK)** — coordinator + subagents; a hook before every edit blocks writes to generated files; a hook after every edit runs the matching validator; CI is the hard gate
 **Phase 16 · Autonomous agents (Managed Agents)** — nightly audit, PR review, fix proposals
 
-| Agent | Model | Job |
-|---|---|---|
-| Coordinator | Opus | Plans, delegates, combines |
-| Structural auditor | Haiku | Token, prop, contract and export checks |
-| Experience validator | Sonnet | Flow and journey checks, simulation |
-| Prototyper | Opus | Requirement → prototype spec → handoff code |
-| Healer | Sonnet | Proposes fixes, never applies them |
+**Operating model: Opus thinks, others build, a different agent checks.**
+
+1. **Opus plans.** It reads the plan, breaks a task into briefs, decides, and does the final review of
+   anything that needs judgment. It does not write the bulk of the code.
+2. **Sonnet or Haiku builds** from Opus's brief.
+3. **A different agent critiques.** Nothing is reviewed by the agent that built it.
+4. **Scripts decide pass/fail.** A critic's opinion never overrides a failing check, and never
+   substitutes for one.
+5. **A human approves** at the gates.
+
+| Agent | Model | Builds or checks | Job |
+|---|---|---|---|
+| Coordinator | Opus 5.5 | Thinks | Plans, writes briefs, delegates, settles disagreements between builder and critic |
+| Component builder | Sonnet 5.5 | Builds | Components, blocks, contracts, stories, tests from a brief |
+| Flow / pattern builder | Sonnet 5.5 | Builds | Pattern and flow contracts, XState machines |
+| Prototyper | Sonnet 5.5 (with Opus as advisor) | Builds | Requirement → prototype spec → handoff code |
+| Structural auditor | Haiku 5.5 | Checks | Runs token, prop, contract and export checks; writes the plain-language report |
+| Contract critic | Opus 5.5 | Checks | Reviews intent, `notFor`, states and a11y claims for honesty and gaps — the judgment the scripts cannot make |
+| Experience critic | Opus 5.5 | Checks | Reviews flows and prototypes against their objective; writes the advisory *agent judgment* section |
+| Healer | Sonnet 5.5 | Builds | Turns failed checks into proposed fixes; never applies them; its fix is re-checked by the auditor |
+
+**Pairing rule:** every build step names its critic in the task; the critic must be a different agent
+from the builder, and on judgment questions a different model. Disagreements go to the Coordinator;
+if it cannot settle one, it stops and asks the owner.
+
+In Managed Agents this maps onto a **coordinator with a roster** (builders and critics as separate
+agents) and **outcomes** (a separate grader re-runs the builder until the checks pass).
 
 Notes: Managed Agents is beta and not eligible for zero-data-retention or HIPAA coverage; repo
 skills load without review, so `.claude/` is protected by CODEOWNERS; every session has a budget cap.
