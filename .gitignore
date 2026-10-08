@@ -1,0 +1,9 @@
+node_modules/
+build/
+dist/
+storybook-static/
+playwright-report/
+test-results/
+coverage/
+.ai/STOP
+.DS_Store
