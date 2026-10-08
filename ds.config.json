@@ -1,0 +1,12 @@
+{
+  "name": "ds",
+  "scope": "@ds",
+  "tokenPrefix": "ds",
+  "dataPrefix": "ds",
+  "dsContracts": {
+    "enabled": false,
+    "schema": "16.0.0",
+    "cli": "0.4.0",
+    "outDir": ".ai/ds-contracts"
+  }
+}
